@@ -1,8 +1,35 @@
+
 turtles-own []
-globals []
 
 to setup
+  ca
   crt Population
+  ask turtles
+  [ randomize-position ;
+    set color green
+    set shape "person"
+    ]
+end
+
+
+to randomize-position
+  ;;positionne de manière aléatoire la tortue
+  set xcor random-float world-width
+  set ycor random-float world-height
+end
+
+
+
+to go
+  ;;comande de l'observateur
+  ask turtles [step ;
+  ]
+end
+
+to step ; fait avancer la tortue d'un pas de manière aléatoire
+  rt random-float 50
+  lt random-float 50
+  fd 1
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -38,7 +65,7 @@ BUTTON
 104
 67
 Start
-start
+setup
 NIL
 1
 T
@@ -56,7 +83,7 @@ BUTTON
 66
 Go
 go
-NIL
+T
 1
 T
 OBSERVER
