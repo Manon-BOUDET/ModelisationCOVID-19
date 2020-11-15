@@ -1,5 +1,19 @@
 
-turtles-own []
+turtles-own
+  [Malade ?
+  En_quarantaine ?
+  Age
+
+]
+
+globals
+[ %Propagation_virus
+  %En_quarantaine
+  ended-simulation ?
+  Duree_contagieux
+  %Proba_guerir
+  duree_vie
+]
 
 to setup
   ca
@@ -8,6 +22,7 @@ to setup
   [ randomize-position ;
     set color green
     set shape "person"
+
     ]
 end
 
@@ -111,10 +126,10 @@ HORIZONTAL
 SLIDER
 18
 119
-190
+207
 152
-Taux_contact_virus
-Taux_contact_virus
+Taux_propagation_virus
+Taux_propagation_virus
 0
 1
 0.4
@@ -133,21 +148,6 @@ Taux_quarantaine
 0
 1
 0.59
-0.01
-1
-NIL
-HORIZONTAL
-
-SLIDER
-20
-206
-206
-239
-Taux_arret_quarantaine
-Taux_arret_quarantaine
-0
-1
-1.0
 0.01
 1
 NIL
@@ -281,6 +281,21 @@ PENS
 "quarantaine" 1.0 0 -6459832 true "" ""
 "guérit" 1.0 0 -1184463 true "" ""
 "Décédés" 1.0 0 -10899396 true "" ""
+
+SLIDER
+20
+206
+206
+239
+Inefficacité_quarantaine
+Inefficacité_quarantaine
+0
+1
+1.0
+0.01
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
