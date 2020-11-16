@@ -1,17 +1,22 @@
-
 turtles-own
-  [Malade ?
-  En_quarantaine ?
+  [Malade?
+  Incubateur?
+  En_quarantaine?
+  Guerit?
+  Vivant?
   Age
-
 ]
 
 globals
-[ %Propagation_virus
-  %En_quarantaine
-  ended-simulation ?
-  Duree_contagieux
-  %Proba_guerir
+[ ;;Population
+  %Susceptibles ;; S(t) : not Malade, not Incubateur, not En_quarantaine, not Guerit, Vivant
+  %StayAtHome ;; H(t) : not Malade, not Incubateur, En_quarantaine, not Guerit, Vivant
+  %Incubating ;; E(t) : not Malade, Incubateur, En_quarantaine and not En_quarantaine, not Guerit, Vivant
+  %InfectiouslyInfected ;; I(t) : Malade, not Incubateur, not En_quarantaine, not Guerit, Vivant
+  %IsolatedClinical ;; Q(t) : Malade (or not Malade), not Incubateur (or Incubateur), En_quarantaine, not Guerit, Vivant
+  %Recovery ;; R(t) : not Malade, not Incubateur, not En_quarantaine, Guerit, Vivant
+  %DiseaseDeath ;; D(t) : not Malade, not Incubateur, not En_quarantaine, not Guerit, not Vivant
+
   duree_vie
 ]
 
@@ -19,13 +24,18 @@ to setup
   ca
   crt Population
   ask turtles
-  [ randomize-position ;
+  [ randomize-position
     set color green
     set shape "person"
-
+    set Malade? false
+    set Incubateur? false
+    set En_quarantaine? false
+    set Guerit? false
+    set Vivant? true
     ]
+  ask n-of (0.1 * Population) turtles
+    [ set Malade? true ]
 end
-
 
 to randomize-position
   ;;positionne de manière aléatoire la tortue
@@ -33,18 +43,67 @@ to randomize-position
   set ycor random-float world-height
 end
 
-
-
-to go
-  ;;comande de l'observateur
-  ask turtles [step ;
-  ]
+to setup_constantes
+  set duree_vie 90 * 365
 end
 
-to step ; fait avancer la tortue d'un pas de manière aléatoire
+to go
+  ask turtles [
+    vieillir
+    avance ]
+
+end
+
+to vieillir
+  if Age > duree_vie [
+    set Vivant? false
+    ask turtles [
+      set color red] ]
+end
+
+;; Susceptibles à StayAtHome
+
+to MiseEnQuarantaine
+
+end
+
+;; StayAtHome à Susceptibles
+
+to SortirQuarantaine
+
+end
+
+;; Susceptibles à Incubating
+
+to Infection
+
+end
+
+;; Incubating à InfectiousloyInfected ou IsolatedClinical
+
+to MaladeOuQuarantaine
+
+end
+
+;; InfectiousloyInfected ou IsolatedClinical à Recovery ou DiseaseDeath
+
+to GuerirOuMourir
+
+end
+
+;; Calcul R0
+
+to MAJ_globals
+end
+
+to avance ; fait avancer la tortue d'un pas de manière aléatoire
   rt random-float 50
   lt random-float 50
   fd 1
+end
+
+to startup
+  setup_constantes
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -126,16 +185,16 @@ HORIZONTAL
 SLIDER
 18
 119
-207
+219
 152
 Taux_propagation_virus
 Taux_propagation_virus
 0
+100
+1.0
 1
-0.4
-0.01
 1
-NIL
+%
 HORIZONTAL
 
 SLIDER
@@ -146,11 +205,11 @@ SLIDER
 Taux_quarantaine
 Taux_quarantaine
 0
+100
+3.0
 1
-0.59
-0.01
 1
-NIL
+%
 HORIZONTAL
 
 SLIDER
@@ -161,26 +220,26 @@ SLIDER
 Taux_contagion
 Taux_contagion
 0
-1
+100
 1.0
-0.01
 1
-NIL
+1
+%
 HORIZONTAL
 
 SLIDER
 21
 292
-264
+280
 325
 Taux_isolement_individus_exposés
 Taux_isolement_individus_exposés
 0
-1
+100
 1.0
-0.01
 1
-NIL
+1
+%
 HORIZONTAL
 
 SLIDER
@@ -191,17 +250,17 @@ SLIDER
 Taux_isolement_contagieux
 Taux_isolement_contagieux
 0
-1
+100
 1.0
-0.01
 1
-NIL
+1
+%
 HORIZONTAL
 
 SLIDER
 23
 377
-238
+271
 410
 Durée_moyenne_contagiosité
 Durée_moyenne_contagiosité
@@ -210,22 +269,22 @@ Durée_moyenne_contagiosité
 50.0
 1
 1
-NIL
+Jours
 HORIZONTAL
 
 SLIDER
 23
 333
-267
+284
 366
 Taux_mortalité_naissance_naturel
 Taux_mortalité_naissance_naturel
 0
-1
+100
 1.0
-0.01
 1
-NIL
+1
+%
 HORIZONTAL
 
 SLIDER
@@ -240,13 +299,13 @@ Probabilité_guérir_malades_contagieux
 49.0
 1
 1
-NIL
+%
 HORIZONTAL
 
 SLIDER
 23
 466
-301
+317
 499
 Probabilité_guérir_malades_quarantaines
 Probabilité_guérir_malades_quarantaines
@@ -255,7 +314,7 @@ Probabilité_guérir_malades_quarantaines
 50.0
 1
 1
-NIL
+%
 HORIZONTAL
 
 PLOT
@@ -285,16 +344,16 @@ PENS
 SLIDER
 20
 206
-206
+222
 239
 Inefficacité_quarantaine
 Inefficacité_quarantaine
 0
-1
+100
 1.0
-0.01
 1
-NIL
+1
+%
 HORIZONTAL
 
 @#$#@#$#@
