@@ -5,6 +5,8 @@ turtles-own
   Guerit?
   Vivant? ;; pour l'instant mort de vieillesse ou covid c'est la même chose
   Age
+  TempsIncubation
+  TempsMaladie
 ]
 
 globals
@@ -16,8 +18,12 @@ globals
   %IsolatedClinical ;; Q(t) : Malade (or not Malade), not Incubateur (or Incubateur), En_quarantaine, not Guerit, Vivant
   %Recovery ;; R(t) : not Malade, not Incubateur, not En_quarantaine, Guerit, Vivant
   %DiseaseDeath ;; D(t) : not Malade, not Incubateur, not En_quarantaine, not Guerit, not Vivant
+
+  ;;Autres
   ended-simulation?
   duree_vie
+  duree_incubation
+  duree_maladie
 ]
 
 to setup
@@ -43,75 +49,81 @@ end
 to setup_constantes
   set duree_vie 90 * 365 ;; A CHANGER POUR TAUX MORTALITE
   set ended-simulation? false
+  set duree_incubation (1 / Taux_contagion )
+  set duree_maladie 14 ;; Simplification impossible d'avoir gamma
 end
 
 ;; Calcul R0
 
 to MAJ_globals
    if count turtles > 0
-    [ set %Susceptibles (count turtles with [not Malade? and not Incubateur? and not Guerit? and not En_quarantaine? and Vivant?] / count turtles) * 100
-      set %StayAtHome (count turtles with [En_quarantaine? and (not Malade? or not Incubateur?)] / count turtles) * 100
-      set %Incubating (count turtles with [not En_quarantaine? and Incubateur?] / count turtles) * 100
-      set %InfectiouslyInfected (count turtles with [Malade? and not En_quarantaine?] / count turtles) * 100
-      set %IsolatedClinical (count turtles with [En_quarantaine? and (Malade? or Incubateur?)] / count turtles) * 100
-      set %Recovery (count turtles with [Guerit?] / count turtles) * 100
-      set %DiseaseDeath (count turtles with [not Vivant?] / count turtles) * 100
+    [ set %Susceptibles (count turtles with [not Malade? and not Incubateur? and not Guerit? and not En_quarantaine? and Vivant? and not Guerit?] / count turtles ) * 100
+      set %StayAtHome (count turtles with [En_quarantaine? and (not Malade? or not Incubateur?) and Vivant? and not Guerit?] / count turtles ) * 100
+      set %Incubating (count turtles with [not En_quarantaine? and Incubateur? and Vivant? and not Guerit?]  / count turtles ) * 100
+      set %InfectiouslyInfected (count turtles with [Malade? and Vivant? and not Guerit?]  / count turtles ) * 100
+      set %IsolatedClinical (count turtles with [En_quarantaine? and (Malade? or Incubateur?) and Vivant? and not Guerit?]  / count turtles ) * 100
+      set %Recovery (count turtles with [Guerit? and Vivant?]  / count turtles ) * 100
+      set %DiseaseDeath (count turtles with [not Vivant? and Malade?]  / count turtles ) * 100
 
       set ended-simulation? %Incubating + %InfectiouslyInfected + %IsolatedClinical = 0 ]
 end
 
 to MAJ_variables
   ask turtles
-    [ if En_quarantaine? and (not Malade? or not Incubateur?) [set color violet]
-    if not En_quarantaine? and Incubateur? [set color yellow]
-    if Malade? and not En_quarantaine? [set color red]
-    if En_quarantaine? and (Malade? or Incubateur?) [set color orange]
-    if not Vivant? [set color black]
-    if Guerit? [set color blue]
+    [ if En_quarantaine? and (not Malade? or not Incubateur?) and Vivant? and not Guerit? [set color violet]
+      if not En_quarantaine? and Incubateur? and Vivant? and not Guerit? [set color yellow]
+      if En_quarantaine? and (Malade? or Incubateur?) and Vivant? and not Guerit? [set color orange]
+      if not Vivant? [set color black]
+      if Guerit? and Vivant? [set color blue]
+      if Malade? and not En_quarantaine? and Vivant? and not Guerit? [set color red]
   ]
 end
 
 to go
   if not ended-simulation?
-  [ ask turtles [
-    vieillir ;; ne fonctionne pas
-    avance
-    if not En_quarantaine? and (not Malade? or not Incubateur? or not Guerit?) [MiseEnQuarantaine]
-    if not En_quarantaine? and (not Malade? or not Incubateur? or not Guerit?) [Infection]
-    if En_quarantaine? and (not Malade? or not Incubateur?) [SortirQuarantaine]
-    if not En_quarantaine? and Incubateur? [MaladeOuQuarantaine]
-    if Malade? and not En_quarantaine? [MaladeEnQuarantaine]
-    if (Malade? and not En_quarantaine?) or ((Malade? or Incubateur?) and En_quarantaine?) [GuerirOuMourir]
+  [ MAJ_globals
+    MAJ_variables
+    ask turtles [
+      vieillir
+      avance
+      if not En_quarantaine? and (not Malade? or not Incubateur? or not Guerit?) and Vivant? and not Guerit? [MiseEnQuarantaine]
+      if not En_quarantaine? and (not Malade? or not Incubateur? or not Guerit?) and Vivant? and not Guerit? [Infection]
+      if En_quarantaine? and (not Malade? or not Incubateur?) and Vivant? and not Guerit? [SortirQuarantaine]
+      if not En_quarantaine? and Incubateur? and Vivant? and not Guerit? [MaladeSansQuarantaine]
+      if not En_quarantaine? and Incubateur? and Vivant? and not Guerit? [IncubateurEnQuarantaine]
+      if Malade? and not En_quarantaine? and Vivant? and not Guerit? [MaladeEnQuarantaine]
+      if ((Malade? and not En_quarantaine?) or ((Malade? or Incubateur?) and En_quarantaine?)) and Vivant? and not Guerit? [GuerirOuMourir]
 
-    set-current-plot "Evolution de la population"
-    set-current-plot-pen "susceptibles"
-    plot %Susceptibles
-    set-current-plot-pen "satyathome"
-    plot %StayAtHome
-    set-current-plot-pen "incubating"
-    plot %Incubating
-    set-current-plot-pen "infectiouslyinfected"
-    plot %InfectiouslyInfected
-    set-current-plot-pen "isolatedclinical"
-    plot %IsolatedClinical
-    set-current-plot-pen "recovery"
-    plot %Recovery
-    set-current-plot-pen "diseasedeath"
-    plot %DiseaseDeath
+      set-current-plot "Evolution de la population"
+      set-current-plot-pen "susceptibles"
+      plot %Susceptibles
+      set-current-plot-pen "satyathome"
+      plot %StayAtHome
+      set-current-plot-pen "incubating"
+      plot %Incubating
+      set-current-plot-pen "infectiouslyinfected"
+      plot %InfectiouslyInfected
+      set-current-plot-pen "isolatedclinical"
+      plot %IsolatedClinical
+      set-current-plot-pen "recovery"
+      plot %Recovery
+      set-current-plot-pen "diseasedeath"
+      plot %DiseaseDeath
 
     ]
-   MAJ_globals
-   MAJ_variables
+
   ]
 end
 
 
 ;; CHANGEMENTS D'ETATS
 to vieillir ;; ne fonctionne pas
-  if Age > duree_vie [ ask turtles
-    [set color blue
-     set Vivant? false]]
+    set Age Age + 1
+    if Age > duree_vie [set Vivant? false]
+    if Incubateur? [set TempsIncubation TempsIncubation - 1]
+    if Malade? [set TempsMaladie TempsMaladie - 1]
 end
+
 
 to EntrerQuarantaine
   set En_quarantaine? true
@@ -123,21 +135,24 @@ end
 
 to Incuber
   set Incubateur? true
+  set TempsIncubation random duree_incubation
 end
 
 to DevenirMalade
   set Incubateur? false
   set Malade? true
+  set TempsMaladie random duree_maladie
 end
 
 to Guerir
   set Malade? false
   set Guerit? true
   set En_quarantaine? false
+  set Incubateur? false
 end
 
 to Mourir
-  set Malade? false
+  set Malade? true
   set Vivant? false
   set Incubateur? false
   set En_quarantaine? false
@@ -147,48 +162,52 @@ end
 ;; CHANGEMENTS DE POPULATION
 ;; Susceptibles à StayAtHome
 to MiseEnQuarantaine
-  if not En_quarantaine? and (not Malade? or not Incubateur? or not Guerit?)
+  if not En_quarantaine? and (not Malade? or not Incubateur? or not Guerit?) and Vivant? and not Guerit?
    [ if random-float 100 < Taux_quarantaine
       [EntrerQuarantaine]]
 end
 
 ;; StayAtHome à Susceptibles
 to SortirQuarantaine
-  if En_quarantaine? and (not Malade? or not Incubateur?)
+  if En_quarantaine? and (not Malade? or not Incubateur?) and Vivant? and not Guerit?
    [ if random-float 100 < Inefficacité_quarantaine
       [SortirQarantaine]]
 end
 
 ;; Susceptibles à Incubating
 to Infection
-  if not En_quarantaine? and (not Malade? or not Incubateur? or not Guerit?)
+  if not En_quarantaine? and (not Malade? or not Incubateur? or not Guerit?) and Vivant? and not Guerit?
    [ if random-float 100 < Taux_propagation_virus
       [Incuber]]
 end
 
 ;; Incubating à InfectiousloyInfected ou IsolatedClinical
-to MaladeOuQuarantaine
-  if not En_quarantaine? and Incubateur?
-  [ ifelse random-float 100 < Taux_contagion
-      [DevenirMalade]
+to MaladeSansQuarantaine
+  if not En_quarantaine? and Incubateur? and Vivant? and not Guerit? and (TempsIncubation = 0)
+  [ if random-float 100 < Taux_contagion
+    [DevenirMalade]]
+end
+
+to IncubateurEnQuarantaine
+  if not En_quarantaine? and Incubateur? and Vivant? and not Guerit? and (TempsIncubation = 0)
       [if random-float 100 < Taux_isolement_individus_exposés
-        [EntrerQuarantaine]]]
+        [EntrerQuarantaine]]
 end
 
 ;; InfectiousloyInfected à IsolatedClinical
 to MaladeEnQuarantaine
-  if Malade? and not En_quarantaine?
+  if Malade? and not En_quarantaine? and Vivant? and not Guerit? and (TempsMaladie = 0)
     [if random-float 100 < Taux_isolement_contagieux
       [EntrerQuarantaine]]
 end
 
 ;; InfectiousloyInfected ou IsolatedClinical à Recovery ou DiseaseDeath
 to GuerirOuMourir
-  if Malade? and not En_quarantaine?
+  if Malade? and not En_quarantaine? and Vivant? and not Guerit? and (TempsMaladie = 0)
     [ifelse random-float 100 < Probabilité_guérir_malades_contagieux
       [Guerir] [Mourir]]
 
-  if (Malade? or Incubateur?) and En_quarantaine?
+  if ((Malade? and (TempsMaladie = 0)) or (Incubateur? and (TempsIncubation = 0))) and En_quarantaine? and Vivant? and not Guerit?
     [ifelse random-float 100 < Probabilité_guérir_malades_quarantaines
       [Guerir] [Mourir]]
 end
@@ -208,19 +227,15 @@ to avance ; fait avancer la tortue d'un pas de manière aléatoire
   lt random-float 50
   fd 1
 end
-
-to startup
-  setup_constantes
-end
 @#$#@#$#@
 GRAPHICS-WINDOW
 291
 10
-728
-448
+956
+676
 -1
 -1
-13.0
+19.91
 1
 10
 1
@@ -298,7 +313,7 @@ Taux_propagation_virus
 Taux_propagation_virus
 0
 100
-83.0
+60.0
 1
 1
 %
@@ -313,7 +328,7 @@ Taux_quarantaine
 Taux_quarantaine
 0
 100
-24.0
+52.0
 1
 1
 %
@@ -328,7 +343,7 @@ Taux_contagion
 Taux_contagion
 0
 100
-65.0
+56.0
 1
 1
 %
@@ -343,7 +358,7 @@ Taux_isolement_individus_exposés
 Taux_isolement_individus_exposés
 0
 100
-23.0
+48.0
 1
 1
 %
@@ -358,7 +373,7 @@ Taux_isolement_contagieux
 Taux_isolement_contagieux
 0
 100
-20.0
+49.0
 1
 1
 %
@@ -373,7 +388,7 @@ Taux_mortalité_naissance_naturel
 Taux_mortalité_naissance_naturel
 0
 100
-43.0
+52.0
 1
 1
 %
@@ -388,7 +403,7 @@ Probabilité_guérir_malades_contagieux
 Probabilité_guérir_malades_contagieux
 0
 100
-35.0
+48.0
 1
 1
 %
@@ -403,17 +418,17 @@ Probabilité_guérir_malades_quarantaines
 Probabilité_guérir_malades_quarantaines
 0
 100
-32.0
+51.0
 1
 1
 %
 HORIZONTAL
 
 PLOT
-384
-433
-1072
-769
+991
+17
+1866
+616
 Evolution de la population
 Temps
 % Population
@@ -442,7 +457,7 @@ Inefficacité_quarantaine
 Inefficacité_quarantaine
 0
 100
-72.0
+48.0
 1
 1
 %
