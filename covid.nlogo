@@ -1,61 +1,61 @@
 turtles-own
-  [Malade?
-  Incubateur?
-  En_quarantaine?
-  Guerit?
-  Vivant? ;; pour l'instant mort de vieillesse ou covid c'est la même chose
-  Age
-  TempsIncubation
-  TempsMaladie
+  [Malade? ;; Est-ce que la turtle est malade
+  Incubateur? ;; Est-ce que la turtle est en train d'incuber le virus, elle n'est pas encore malade
+  En_quarantaine? ;; Est-ce que la turtle a été placée en quarantaine (clinique ou à la maison)
+  Guerit? ;; Est-ce que la turtle a été malade et a guérit
+  Vivant?  ;; Est-ce que la turtle est vivante. Ne pas tuer les turtles permet de calculer le taux de décès par maladie
+  TempsIncubation ;; Combien de temps la turtle incube le virus, à la fin de ce temps, elle peut tomber malade
+  TempsMaladie ;; Combien de temps la turtle est malade, à la fin de ce temps, elle peut guérir ou mourir
 ]
 
 globals
 [ ;;Population
-  %Susceptibles ;; S(t) : not Malade, not Incubateur, not En_quarantaine, not Guerit, Vivant
-  %StayAtHome ;; H(t) : not Malade, not Incubateur, En_quarantaine, not Guerit, Vivant
-  %Incubating ;; E(t) : not Malade, Incubateur, En_quarantaine and not En_quarantaine, not Guerit, Vivant
-  %InfectiouslyInfected ;; I(t) : Malade, not Incubateur, not En_quarantaine, not Guerit, Vivant
-  %IsolatedClinical ;; Q(t) : Malade (or not Malade), not Incubateur (or Incubateur), En_quarantaine, not Guerit, Vivant
-  %Recovery ;; R(t) : not Malade, not Incubateur, not En_quarantaine, Guerit, Vivant
-  %DiseaseDeath ;; D(t) : not Malade, not Incubateur, not En_quarantaine, not Guerit, not Vivant
+  %Susceptibles ;; S(t) : la turtle peut attraper et incuber le virus (not Malade, not Incubateur, not En_quarantaine, not Guerit, Vivant)
+  %StayAtHome ;; H(t) : la turtle reste à sa maison (not Malade, not Incubateur, En_quarantaine, not Guerit, Vivant)
+  %Incubating ;; E(t) : la turtle incube le virus, elle n'est pas encore malade (not Malade, Incubateur, En_quarantaine and not En_quarantaine, not Guerit, Vivant)
+  %InfectiouslyInfected ;; I(t) : la turtle est tombée malade (Malade, not Incubateur, not En_quarantaine, not Guerit, Vivant)
+  %IsolatedClinical ;; Q(t) : la turtle est incube le virus ou est malade. Elle est isolée cliniquement (Malade (or not Malade), not Incubateur (or Incubateur), En_quarantaine, not Guerit, Vivant)
+  %Recovery ;; R(t) : la turtle a guérit de la maladie (not Malade, not Incubateur, not En_quarantaine, Guerit, Vivant)
+  %DiseaseDeath ;; D(t) : la turtle a succombée à la maladie (not Malade, not Incubateur, not En_quarantaine, not Guerit, not Vivant)
 
   ;;Autres
-  ended-simulation?
-  duree_vie
+  ended-simulation? ;; est-ce que la simulation est finie, c'est-à-dire, que plus aucune tortue n'incube la maladie, n'est malade et n'est isolée cliniquement (voir plus loin)
   duree_incubation
   duree_maladie
+
+  ;; Calcul R0
+  Phi ;; Sigma + Eta + Mu (voir description dans l'interface)
+  Xi ;; Alpha + Gamma + Mu (voir description dans l'interface)
+  Psi ;; Mu + Teta + Teta0 (voir description dans l'interface)
+  R0 ;; (Beta * Sigma ( Mu + Teta0)) / Phi * Xi * Psi
 ]
 
 to setup
-  ca
-  crt Population
-  setup_constantes
+  ca ;; clear all
+  crt Population ;; Créer la population selon le nombre choisi
+  setup_constantes ;; Initialiser les constantes ended-simulation, duree_incubation, duree_maladie
   ask turtles
-  [ position_aleatoire
-    set color green
+  [ position_aleatoire ;; placer les turtles aléatoirement
+    set color green ;; Initialement, toutes les turtles sont susceptibles d'être malades, donc vertes
     set shape "person"
-    set Malade? false
-    set Incubateur? false
-    set En_quarantaine? false
-    set Guerit? false
-    set Vivant? true
-    set Age random duree_vie
+    set Malade? false ;; Intialement, une turtle n'est pas malade
+    set Incubateur? false ;; Initialement, une turtle n'incube pas
+    set En_quarantaine? false ;; Initialement, une turtle n'est pas en quarantaine
+    set Guerit? false ;; Initialement, une turtle n'a jamais été malade et donc n'a pas guérit de la maladie
+    set Vivant? true ;; Une turtle est vivante
     ]
-  ask n-of (0.1 * Population) turtles
+  ask n-of (0.1 * Population) turtles ;; On demande à 10% de la population des turtles d'êtres malades (les premiers cas)
     [ set Malade? true
       set color red ]
 end
 
-to setup_constantes
-  set duree_vie 90 * 365 ;; A CHANGER POUR TAUX MORTALITE
+to setup_constantes ;; Initialiser les constantes ended-simulation, duree_incubation, duree_maladie
   set ended-simulation? false
-  set duree_incubation (1 / Taux_contagion )
-  set duree_maladie 14 ;; Simplification impossible d'avoir gamma
+  set duree_incubation (1 / Sigma ) ;; Voir le modèle : durée moyenne de l'incubation
+  set duree_maladie (1 / Gamma) ;; Voir le modèle : durée moyenne de la maladie
 end
 
-;; Calcul R0
-
-to MAJ_globals
+to MAJ_globals ;; Pour acutaliser le pourcentage de chaque population (susceptibles, à la maison, incubant, malade, isolée cliniquement, guérit, mort dûe maladie)
    if count turtles > 0
     [ set %Susceptibles (count turtles with [not Malade? and not Incubateur? and not Guerit? and not En_quarantaine? and Vivant? and not Guerit?] / count turtles ) * 100
       set %StayAtHome (count turtles with [En_quarantaine? and (not Malade? or not Incubateur?) and Vivant? and not Guerit?] / count turtles ) * 100
@@ -65,35 +65,41 @@ to MAJ_globals
       set %Recovery (count turtles with [Guerit? and Vivant?]  / count turtles ) * 100
       set %DiseaseDeath (count turtles with [not Vivant? and Malade?]  / count turtles ) * 100
 
+      ;;vérifier s'il y a encore des personnes malades, isolées cliniquement ou incubant, pour arrêter la simulation s'il n'y en a plus
       set ended-simulation? %Incubating + %InfectiouslyInfected + %IsolatedClinical = 0 ]
 end
 
 to MAJ_variables
   ask turtles
-    [ if En_quarantaine? and (not Malade? or not Incubateur?) and Vivant? and not Guerit? [set color violet]
-      if not En_quarantaine? and Incubateur? and Vivant? and not Guerit? [set color yellow]
-      if En_quarantaine? and (Malade? or Incubateur?) and Vivant? and not Guerit? [set color orange]
-      if not Vivant? [set color black]
-      if Guerit? and Vivant? [set color blue]
-      if Malade? and not En_quarantaine? and Vivant? and not Guerit? [set color red]
+    [ if En_quarantaine? and (not Malade? or not Incubateur?) and Vivant? and not Guerit? [set color violet] ;; "StayAtHome"
+      if not En_quarantaine? and Incubateur? and Vivant? and not Guerit? [set color yellow] ;; "Incubating"
+      if En_quarantaine? and (Malade? or Incubateur?) and Vivant? and not Guerit? [set color orange] ;; "IsolatedClinical"
+      if not Vivant? [set color black] ;; "DiseaseDeath" et les personnes décédées "naturellement"
+      if Guerit? and Vivant? [set color blue] ;; "Recovery"
+      if Malade? and not En_quarantaine? and Vivant? and not Guerit? [set color red] ;; "InfectiouslyInfected"
   ]
 end
 
 to go
-  if not ended-simulation?
-  [ MAJ_globals
-    MAJ_variables
+  if not ended-simulation? ;; On vérifie qu'il y a toujours des malades, incubant ou isolés cliniquement
+  [ MAJ_globals ;; On actualise les pourcentages de population
+    MAJ_variables ;; On actualise la couleur des tortues, en fonction de leur catégorie de population
     ask turtles [
-      vieillir
-      avance
-      if not En_quarantaine? and (not Malade? or not Incubateur? or not Guerit?) and Vivant? and not Guerit? [MiseEnQuarantaine]
-      if not En_quarantaine? and (not Malade? or not Incubateur? or not Guerit?) and Vivant? and not Guerit? [Infection]
-      if En_quarantaine? and (not Malade? or not Incubateur?) and Vivant? and not Guerit? [SortirQuarantaine]
-      if not En_quarantaine? and Incubateur? and Vivant? and not Guerit? [MaladeSansQuarantaine]
-      if not En_quarantaine? and Incubateur? and Vivant? and not Guerit? [IncubateurEnQuarantaine]
-      if Malade? and not En_quarantaine? and Vivant? and not Guerit? [MaladeEnQuarantaine]
-      if ((Malade? and not En_quarantaine?) or ((Malade? or Incubateur?) and En_quarantaine?)) and Vivant? and not Guerit? [GuerirOuMourir]
+      vieillir ;; (voir procédure vieillir) On regarde si la turtle décéde de mort "naturelle"
+      ;; Si la turtle est malade ou incube, on diminue son temps temps de maladie ou d'incubation
+      avance ;; on fait avancer la turtle d'un pas
+      calcul_R0
 
+      if not En_quarantaine? and (not Malade? or not Incubateur? or not Guerit?) and Vivant? and not Guerit? [MiseEnQuarantaine] ;; Si la turtle est susceptible, elle peut rester à la maison
+      if not En_quarantaine? and (not Malade? or not Incubateur? or not Guerit?) and Vivant? and not Guerit? [Infection] ;; Si la turtle est susceptible, elle peut attraper le virus
+      if En_quarantaine? and (not Malade? or not Incubateur?) and Vivant? and not Guerit? [SortirQuarantaine] ;; Si la turtle est à la maison, elle peut sortir de son confinement
+      if not En_quarantaine? and Incubateur? and Vivant? and not Guerit? [MaladeSansQuarantaine] ;; Si la turtle incube le virus, elle peut tomber malade
+      if not En_quarantaine? and Incubateur? and Vivant? and not Guerit? [IncubateurEnQuarantaine] ;; Si la turtle incube le virus, elle peut être confinée cliniquement
+      if Malade? and not En_quarantaine? and Vivant? and not Guerit? [MaladeEnQuarantaine] ;; Si la turtle est malade, elle peut être confinée cliniquement
+      if ((Malade? and not En_quarantaine?) or ((Malade? or Incubateur?) and En_quarantaine?)) and Vivant? and not Guerit? [GuerirOuMourir] ;; Si la turtle est malade ou incube, elle peut guérir ou décédée de la maladie
+
+
+      ;; Modélisation du graphique
       set-current-plot "Evolution de la population"
       set-current-plot-pen "susceptibles"
       plot %Susceptibles
@@ -115,43 +121,49 @@ to go
   ]
 end
 
+;; Calcul R0
+to calcul_R0
+  set Phi Sigma + Eta + Mu
+  set Xi Alpha + Mu + Gamma
+  set Psi Mu + Teta + Teta0
 
-;; CHANGEMENTS D'ETATS
-to vieillir ;; ne fonctionne pas
-    set Age Age + 1
-    if Age > duree_vie [set Vivant? false]
-    if Incubateur? [set TempsIncubation TempsIncubation - 1]
-    if Malade? [set TempsMaladie TempsMaladie - 1]
+  set R0 (Beta * Sigma * ( Mu + Teta0 )) / (Phi * Xi * Psi)
 end
 
+;; CHANGEMENTS D'ETATS
+to vieillir ;; On regarde si la turtle décéde de mort "naturelle"
+    if random-float 1  < Mu [set Vivant? false]
+    if Incubateur? [set TempsIncubation TempsIncubation - 1] ;; Si la turtle incube, on fait diminuer son temps d'incubation
+    if Malade? [set TempsMaladie TempsMaladie - 1] ;; Si la turtle est malade, on fait diminuer son temps de maladie
+end
 
-to EntrerQuarantaine
+to EntrerQuarantaine ;; On place la turtle en quarantaine
   set En_quarantaine? true
 end
 
-to SortirQarantaine
+to SortirQarantaine ;; On sort la turtle ded quarantaine
   set En_quarantaine? false
 end
 
-to Incuber
+to Incuber ;; La turtle se met à incuber le virus pour la prochaine période TempsIncubation
   set Incubateur? true
   set TempsIncubation random duree_incubation
 end
 
-to DevenirMalade
+to DevenirMalade ;; La turtle n'incube plus mais est désormais malade, pour la prochaine période TempsMaladie
   set Incubateur? false
   set Malade? true
   set TempsMaladie random duree_maladie
 end
 
-to Guerir
+to Guerir ;; La turtle est guérie, elle n'est plus malade, elle n'a plus besoin d'être en quarantaine et n'incube pas non plus
   set Malade? false
   set Guerit? true
   set En_quarantaine? false
   set Incubateur? false
 end
 
-to Mourir
+to Mourir ;; La turtle décéde, elle n'est plus, et donc plus en quarantaine. On met la turtle malade afin de différencier les morts du virus, et compter le porcentage, des morts naturelles
   set Malade? true
   set Vivant? false
   set Incubateur? false
@@ -161,81 +173,80 @@ end
 
 ;; CHANGEMENTS DE POPULATION
 ;; Susceptibles à StayAtHome
-to MiseEnQuarantaine
+to MiseEnQuarantaine ;; Si la turtle est susceptible, elle a Teta chances d'être mise en quarantaine
   if not En_quarantaine? and (not Malade? or not Incubateur? or not Guerit?) and Vivant? and not Guerit?
-   [ if random-float 100 < Taux_quarantaine
+   [ if random-float 1 < Teta
       [EntrerQuarantaine]]
 end
 
 ;; StayAtHome à Susceptibles
-to SortirQuarantaine
+to SortirQuarantaine ;; Si la turtle est en quarantaine, elle a Teta0 chances de sortir de quarantaine
   if En_quarantaine? and (not Malade? or not Incubateur?) and Vivant? and not Guerit?
-   [ if random-float 100 < Inefficacité_quarantaine
+   [ if random-float 1 < Teta0
       [SortirQarantaine]]
 end
 
 ;; Susceptibles à Incubating
-to Infection
+to Infection ;; Si la turtle est susceptible, elle a Beta chances d'attraper le virus et de se mettre à incuber le virus
   if not En_quarantaine? and (not Malade? or not Incubateur? or not Guerit?) and Vivant? and not Guerit?
-   [ if random-float 100 < Taux_propagation_virus
+   [ if random-float 1 < Beta
       [Incuber]]
 end
 
-;; Incubating à InfectiousloyInfected ou IsolatedClinical
-to MaladeSansQuarantaine
-  if not En_quarantaine? and Incubateur? and Vivant? and not Guerit? and (TempsIncubation = 0)
-  [ if random-float 100 < Taux_contagion
+;; Incubating à InfectiousloyInfected
+to MaladeSansQuarantaine ;; Si la turtle incube le virus, elle a Sigma chances de tomber malade
+  if not En_quarantaine? and Incubateur? and Vivant? and not Guerit? and (TempsIncubation < 1 )
+  [ if random-float 1 < Sigma
     [DevenirMalade]]
 end
 
-to IncubateurEnQuarantaine
-  if not En_quarantaine? and Incubateur? and Vivant? and not Guerit? and (TempsIncubation = 0)
-      [if random-float 100 < Taux_isolement_individus_exposés
+;;Incubating à IsolatedClinical
+to IncubateurEnQuarantaine ;; Si la turtle incube le virus, elle a Eta chances d'être mise en quarantaine clinique
+  if not En_quarantaine? and Incubateur? and Vivant? and not Guerit? and (TempsIncubation < 1)
+      [if random-float 1 < Eta
         [EntrerQuarantaine]]
 end
 
 ;; InfectiousloyInfected à IsolatedClinical
-to MaladeEnQuarantaine
-  if Malade? and not En_quarantaine? and Vivant? and not Guerit? and (TempsMaladie = 0)
-    [if random-float 100 < Taux_isolement_contagieux
+to MaladeEnQuarantaine ;; Si la turtle est malade, elle a Alpha chances d'être mise en quarantaine clinique
+  if Malade? and not En_quarantaine? and Vivant? and not Guerit? and (TempsMaladie < 1)
+    [if random-float 1 < Alpha
       [EntrerQuarantaine]]
 end
 
 ;; InfectiousloyInfected ou IsolatedClinical à Recovery ou DiseaseDeath
-to GuerirOuMourir
-  if Malade? and not En_quarantaine? and Vivant? and not Guerit? and (TempsMaladie = 0)
-    [ifelse random-float 100 < Probabilité_guérir_malades_contagieux
-      [Guerir] [Mourir]]
+to GuerirOuMourir ;; Si la turtle est malade (ou incube), elle a K1*Gamma (K2*Gamma) chances de guérir et (1-K1)*Gamma ((1-K2)*Gamma) de mourir
+  if Malade? and not En_quarantaine? and Vivant? and not Guerit? and (TempsMaladie < 1)
+    [ifelse random-float 1 < K1 * Gamma
+      [Guerir] [if random-float 1 < ( 1 - K1 ) * Gamma  [Mourir]]]
 
-  if ((Malade? and (TempsMaladie = 0)) or (Incubateur? and (TempsIncubation = 0))) and En_quarantaine? and Vivant? and not Guerit?
-    [ifelse random-float 100 < Probabilité_guérir_malades_quarantaines
-      [Guerir] [Mourir]]
+  if ((Malade? and (TempsMaladie < 1)) or (Incubateur? and (TempsIncubation < 1))) and En_quarantaine? and Vivant? and not Guerit?
+    [ifelse random-float 1 < K2 * Gamma
+      [Guerir] [if random-float 1 < ( 1 - K2 ) * Gamma  [Mourir]]]
 end
 
 
-
-
 ;; POSITION de la turtle
-to position_aleatoire
-  ;;positionne de manière aléatoire la tortue
+to position_aleatoire ;;positionne de manière aléatoire la tortue
   set xcor random-float world-width
   set ycor random-float world-height
 end
 
-to avance ; fait avancer la tortue d'un pas de manière aléatoire
-  rt random-float 50
+to avance ; fait avancer la tortue d'un pas de manière aléatoire, si elle est vivante
+  if Vivant?
+  [rt random-float 50
   lt random-float 50
-  fd 1
+    fd 1]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-291
+345
 10
-956
-676
+711
+377
 -1
 -1
-19.91
+10.85
 1
 10
 1
@@ -290,145 +301,115 @@ NIL
 1
 
 SLIDER
-17
-79
-189
-112
+28
+84
+186
+117
 Population
 Population
 0
 1000
-573.0
+1000.0
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-18
-119
-219
-152
-Taux_propagation_virus
-Taux_propagation_virus
+25
+158
+183
+191
+Beta
+Beta
 0
-100
-60.0
 1
+0.05
+0.01
 1
-%
+NIL
 HORIZONTAL
 
 SLIDER
-18
-162
-190
-195
-Taux_quarantaine
-Taux_quarantaine
+25
+350
+185
+383
+Sigma
+Sigma
 0
-100
-52.0
 1
+0.19
+0.01
 1
-%
+NIL
 HORIZONTAL
 
 SLIDER
-21
-248
-193
-281
-Taux_contagion
-Taux_contagion
+28
+474
+185
+507
+Alpha
+Alpha
 0
-100
-56.0
 1
+0.0
+0.01
 1
-%
+NIL
 HORIZONTAL
 
 SLIDER
-21
-292
-280
-325
-Taux_isolement_individus_exposés
-Taux_isolement_individus_exposés
+31
+701
+188
+734
+Mu
+Mu
 0
-100
-48.0
 1
+0.01
+0.01
 1
-%
+NIL
 HORIZONTAL
 
 SLIDER
-21
-422
-279
-455
-Taux_isolement_contagieux
-Taux_isolement_contagieux
+30
+645
+184
+678
+K2
+K2
 0
-100
-49.0
+0.99
+0.9
+0.01
 1
-1
-%
+NIL
 HORIZONTAL
 
 SLIDER
-23
-333
-284
-366
-Taux_mortalité_naissance_naturel
-Taux_mortalité_naissance_naturel
+29
+585
+182
+618
+K1
+K1
 0
-100
-52.0
+0.99
+0.9
+0.01
 1
-1
-%
-HORIZONTAL
-
-SLIDER
-19
-512
-339
-545
-Probabilité_guérir_malades_contagieux
-Probabilité_guérir_malades_contagieux
-0
-100
-48.0
-1
-1
-%
-HORIZONTAL
-
-SLIDER
-23
-466
-317
-499
-Probabilité_guérir_malades_quarantaines
-Probabilité_guérir_malades_quarantaines
-0
-100
-51.0
-1
-1
-%
+NIL
 HORIZONTAL
 
 PLOT
-991
-17
-1866
-616
+343
+389
+935
+752
 Evolution de la population
 Temps
 % Population
@@ -449,18 +430,174 @@ PENS
 "diseasedeath" 1.0 0 -16777216 true "" ""
 
 SLIDER
-20
-206
-222
-239
-Inefficacité_quarantaine
-Inefficacité_quarantaine
+24
+289
+183
+322
+Teta0
+Teta0
 0
-100
-48.0
 1
+0.0
+0.01
 1
-%
+NIL
+HORIZONTAL
+
+SLIDER
+29
+531
+184
+564
+Gamma
+Gamma
+0
+1
+0.07
+0.01
+1
+NIL
+HORIZONTAL
+
+MONITOR
+242
+35
+299
+92
+NIL
+R0
+2
+1
+14
+
+TEXTBOX
+28
+123
+313
+164
+Taux de contact des personnes susceptibles avec des contagieux
+14
+0.0
+1
+
+TEXTBOX
+27
+199
+268
+233
+Taux de personne en quarantaine
+14
+0.0
+1
+
+TEXTBOX
+28
+257
+290
+293
+Taux de personnes sortant de quarantaine à cause de l'inefficacité de la quarantaine
+14
+0.0
+1
+
+TEXTBOX
+28
+330
+320
+348
+Probabilité qu'un infecté devienne malade
+14
+0.0
+1
+
+TEXTBOX
+28
+393
+316
+427
+Taux d'isolement des personnes susceptibles
+14
+0.0
+1
+
+TEXTBOX
+29
+456
+249
+474
+Taux d'isolement des malades
+14
+0.0
+1
+
+TEXTBOX
+33
+682
+183
+700
+Taux de mortalité
+14
+0.0
+1
+
+TEXTBOX
+31
+568
+313
+586
+Probabilité de guérir d'une personne malade
+14
+0.0
+1
+
+TEXTBOX
+32
+627
+385
+645
+Probabilité de guérir d'une personne malade isolée
+14
+0.0
+1
+
+TEXTBOX
+34
+514
+411
+532
+Taux de passage de malade à guérit ou décédé
+14
+0.0
+1
+
+SLIDER
+26
+416
+186
+449
+Eta
+Eta
+0
+1
+0.0
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+27
+224
+185
+257
+Teta
+Teta
+0
+1
+0.0
+0.01
+1
+NIL
 HORIZONTAL
 
 @#$#@#$#@
